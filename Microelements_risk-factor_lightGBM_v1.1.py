@@ -1,6 +1,8 @@
-# Author: Lin, Wei-Zhi
-# Version: 1.0.0
-# Last updated: 20250428
+"""
+Author: Lin, Wei-Zhi
+Version: 1.1.0
+Last updated: 20250429
+"""
 #%% 00 Import Packages
 import pandas as pd
 import numpy as np
@@ -12,13 +14,26 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, roc_curve,
 
 #%% 01 Read and Prepare Data
 # Load data
-df_data = pd.read_csv('data.csv')
+df_data = pd.read_csv('import_df_TableMaker_2groups0429.csv')
 
 # Remove rows with 'suspected normal'
 df_data = df_data[df_data['group'] != 'suspected normal']
 
 # Define features and target
-features = ['age_at_include', 'sex', 'BMI', 'Se']
+features = ['age_at_include', 'sex', 'BMI', 
+            'X78..Se....He..', 'X7..Li....No.gas..', 'X9..Be....No.gas..', 
+            'X44..Ca....He..', 'X51..V....He..', 'X52..Cr....He..', 
+            'X55..Mn....He..', 'X56..Fe....He..', 'X59..Co....He..', 
+            'X60..Ni....He..', 'X63..Cu....He..', 'X66..Zn....He..', 
+            'X71..Ga....He..', 'X72..Ge....He..', 'X75..As....He..', 
+            'X78..Se....He...1', 'X85..Rb....He..', 'X88..Sr....He..', 
+            'X90..Zr....He..', 'X95..Mo....He..', 'X107..Ag....He..', 
+            'X111..Cd....He..', 'X115..In....He..', 'X118..Sn....He..', 
+            'X121..Sb....He..', 'X125..Te....He..', 'X137..Ba....He..', 
+            'X182..W....He..', 'X195..Pt....He..', 'X197..Au....He..', 
+            'X201..Hg....He..', 'X205..Tl....He..', 'X208..Pb....He..', 
+            'X209..Bi....He..', 'X232..Th....He..', 'X238..U....He..']
+
 X = df_data[features]
 y = df_data['group']
 
@@ -164,7 +179,7 @@ plt.show()
 #%% Risk Score Calculation Pipeline (with ID and Features, no risk group)
 
 # 1. Define features to use
-features = ['age_at_include', 'sex', 'BMI', 'Se']
+features = ['age_at_include', 'sex', 'BMI', 'X78..Se....He..']
 X = df_data[features]
 
 # Also keep ID
@@ -187,7 +202,7 @@ X_standardized = (X - feature_means) / feature_stds
 feature_weights = {
     'age_at_include': 0.296370,
     'sex': 0.289883,
-    'Se': 0.214256,
+    'X78..Se....He..': 0.214256,
     'BMI': 0.199492
 }
 
@@ -214,5 +229,3 @@ print(risk_table.head())
 
 # Optional: Save to CSV
 risk_table.to_csv('risk_score_table.csv', index=False)
-
-# %%
