@@ -186,10 +186,19 @@ plt.show()
 
 #%% PART 2 — Full Risk Scoring for Entire Dataset
 #%% 10 Label Risk Score for All Samples
-# 1. Extract ID
-sample_id = df_data['ID']
+# 1. Calculate risk score for all samples
+risk_score_all = model.predict_proba(X)[:, 1]
+plt.figure(figsize=(8,6))
+plt.hist(risk_score_all, bins=50, color='skyblue', edgecolor='black')
+# plt.xlim(-1, 1)
+plt.xlabel('Risk Score')
+plt.ylabel('Number of Samples')
+plt.title('Distribution of Risk Scores (All Samples)')
+plt.grid(False)
+plt.show()
 
 # 2. Combine ID and risk score into a new DataFrame
+sample_id = df_data['ID']
 risk_table_all = pd.DataFrame({
     'ID': sample_id,
     'risk_score': risk_score_all
