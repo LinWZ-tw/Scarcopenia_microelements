@@ -149,12 +149,34 @@ plt.grid(False)
 plt.show()
 
 #%% 09 Plot ROC Curve
+# Calculate ROC metrics
 fpr, tpr, roc_thresholds = roc_curve(y_test, risk_score_test)
 roc_auc = roc_auc_score(y_test, risk_score_test)
 
+# Find the index where ROC threshold is closest to the best_threshold
+best_idx_for_roc = np.argmin(np.abs(roc_thresholds - best_threshold))
+
+# Get the corresponding best FPR and TPR
+best_fpr = fpr[best_idx_for_roc]
+best_tpr = tpr[best_idx_for_roc]
+
+# Start plotting
 plt.figure(figsize=(8,6))
+# Plot ROC curve
 plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (AUC = {roc_auc:.2f})')
+# Plot random guess line
 plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--', label='Random Guess')
+# Plot best cutoff point
+plt.scatter(best_fpr, best_tpr, color='red', edgecolor='black', s=100, label=f'Best Cutoff ({best_threshold:.2f})')
+# Annotate the best cutoff on the plot
+plt.annotate(f'{best_threshold:.2f}',
+             (best_fpr, best_tpr),
+             textcoords="offset points",
+             xytext=(10, -10),
+             ha='center',
+             fontsize=10,
+             color='red')
+# Add plot labels
 plt.xlabel('False Positive Rate (1 - Specificity)')
 plt.ylabel('True Positive Rate (Sensitivity)')
 plt.title('Receiver Operating Characteristic (ROC) Curve')
@@ -163,69 +185,27 @@ plt.grid(False)
 plt.show()
 
 #%% PART 2 — Full Risk Scoring for Entire Dataset
-#%% 10 Predict Risk Score for All Samples
-risk_score_all = model.predict_proba(X)[:, 1]
-
-#%% 11 Plot Risk Score Distribution
-plt.figure(figsize=(8,6))
-plt.hist(risk_score_all, bins=50, color='skyblue', edgecolor='black')
-plt.xlim(0, 1)
-plt.xlabel('Risk Score')
-plt.ylabel('Number of Samples')
-plt.title('Distribution of Risk Scores (All Samples)')
-plt.grid(False)
-plt.show()
-
-#%% Risk Score Calculation Pipeline (with ID and Features, no risk group)
-
-# 1. Define features to use
-features = ['age_at_include', 'sex', 'BMI', 'X78..Se....He..']
-X = df_data[features]
-
-# Also keep ID
+#%% 10 Label Risk Score for All Samples
+# 1. Extract ID
 sample_id = df_data['ID']
 
-# 2. Calculate mean and std for each feature
-feature_means = X.mean()
-feature_stds = X.std()
-
-print("\n📋 Feature Means:")
-print(feature_means)
-
-print("\n📋 Feature Standard Deviations:")
-print(feature_stds)
-
-# 3. Standardize each feature
-X_standardized = (X - feature_means) / feature_stds
-
-# 4. Define SHAP-derived feature weights
-feature_weights = {
-    'age_at_include': 0.296370,
-    'sex': 0.289883,
-    'X78..Se....He..': 0.214256,
-    'BMI': 0.199492
-}
-
-# 5. Calculate Risk Score (weighted sum of standardized features)
-risk_scores = X_standardized.mul(pd.Series(feature_weights)).sum(axis=1)
-
-# 6. Build full risk table
-risk_table = pd.DataFrame({
+# 2. Combine ID and risk score into a new DataFrame
+risk_table_all = pd.DataFrame({
     'ID': sample_id,
-    'risk_score': risk_scores,
+    'risk_score': risk_score_all
 })
 
-# Add original features into risk table
+# 3. (Optional) Add original features if you want
 for feature in features:
-    risk_table[feature] = df_data[feature]
+    risk_table_all[feature] = df_data[feature]
 
-# (Optional) Attach true label if available
+# 4. (Optional) Add true label if you have it
 if 'group' in df_data.columns:
-    risk_table['true_label'] = df_data['group']
+    risk_table_all['true_label'] = df_data['group']
 
-# 7. Display
-print("\n📋 Full Risk Table Preview (No Risk Group):")
-print(risk_table.head())
+# 5. Show preview
+print("\n Risk Table (All Samples):")
+print(risk_table_all.head())
 
-# Optional: Save to CSV
-risk_table.to_csv('risk_score_table.csv', index=False)
+# 6. Save to CSV
+risk_table_all.to_csv('output_risk_score_all_samples.csv', index=False)
