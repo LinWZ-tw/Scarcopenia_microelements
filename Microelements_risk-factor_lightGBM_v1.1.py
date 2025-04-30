@@ -14,7 +14,7 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, roc_curve,
 
 #%% 01 Read and Prepare Data
 # Load data
-df_data = pd.read_csv('import_df_TableMaker_2groups0429.csv')
+df_data = pd.read_csv('import_df.csv')
 
 # Remove rows with 'suspected normal'
 df_data = df_data[df_data['group'] != 'suspected normal']
@@ -84,7 +84,23 @@ print(feature_importance)
 
 #%% PART 1 — Model Evaluation on Test Set
 #%% 05 Predict Risk Scores on Test Set
-risk_score_test = model.predict_proba(X_test)[:, 1]  # Directly get probability for class 1 (Dyna/Sarcopenia)
+risk_score_test_raw = model.predict_proba(X_test)[:, 1]
+
+# Auto-flip check based on AUC
+risk_score_flipped = 1 - risk_score_test_raw
+auc_raw = roc_auc_score(y_test, risk_score_test_raw)
+auc_flip = roc_auc_score(y_test, risk_score_flipped)
+
+if auc_flip > auc_raw:
+    print(f"🔄 Flipping improves AUC: from {auc_raw:.2f} → {auc_flip:.2f}")
+    risk_score_test = risk_score_flipped
+    flipped = True
+    roc_auc = auc_flip
+else:
+    print(f"✅ No flip needed: AUC = {auc_raw:.2f}")
+    risk_score_test = risk_score_test_raw
+    flipped = False
+    roc_auc = auc_raw
 
 #%% 06 Find Best Cutoff (Youden's Index)
 thresholds = np.arange(0.0, 1.0, 0.01)
@@ -149,34 +165,20 @@ plt.grid(False)
 plt.show()
 
 #%% 09 Plot ROC Curve
-# Calculate ROC metrics
 fpr, tpr, roc_thresholds = roc_curve(y_test, risk_score_test)
-roc_auc = roc_auc_score(y_test, risk_score_test)
 
-# Find the index where ROC threshold is closest to the best_threshold
+# Find best point on ROC curve
 best_idx_for_roc = np.argmin(np.abs(roc_thresholds - best_threshold))
-
-# Get the corresponding best FPR and TPR
 best_fpr = fpr[best_idx_for_roc]
 best_tpr = tpr[best_idx_for_roc]
 
-# Start plotting
+# Plot
 plt.figure(figsize=(8,6))
-# Plot ROC curve
 plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (AUC = {roc_auc:.2f})')
-# Plot random guess line
 plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--', label='Random Guess')
-# Plot best cutoff point
 plt.scatter(best_fpr, best_tpr, color='red', edgecolor='black', s=100, label=f'Best Cutoff ({best_threshold:.2f})')
-# Annotate the best cutoff on the plot
-plt.annotate(f'{best_threshold:.2f}',
-             (best_fpr, best_tpr),
-             textcoords="offset points",
-             xytext=(10, -10),
-             ha='center',
-             fontsize=10,
-             color='red')
-# Add plot labels
+plt.annotate(f'{best_threshold:.2f}', (best_fpr, best_tpr), textcoords="offset points", xytext=(10, -10),
+             ha='center', fontsize=10, color='red')
 plt.xlabel('False Positive Rate (1 - Specificity)')
 plt.ylabel('True Positive Rate (Sensitivity)')
 plt.title('Receiver Operating Characteristic (ROC) Curve')
@@ -186,35 +188,74 @@ plt.show()
 
 #%% PART 2 — Full Risk Scoring for Entire Dataset
 #%% 10 Label Risk Score for All Samples
-# 1. Calculate risk score for all samples
-risk_score_all = model.predict_proba(X)[:, 1]
+# Apply flip to full data if test score was flipped
+risk_score_all_raw = model.predict_proba(X)[:, 1]
+risk_score_all = 1 - risk_score_all_raw if flipped else risk_score_all_raw
+
 plt.figure(figsize=(8,6))
 plt.hist(risk_score_all, bins=50, color='skyblue', edgecolor='black')
-# plt.xlim(-1, 1)
 plt.xlabel('Risk Score')
 plt.ylabel('Number of Samples')
 plt.title('Distribution of Risk Scores (All Samples)')
 plt.grid(False)
 plt.show()
 
-# 2. Combine ID and risk score into a new DataFrame
+# Combine ID and risk score into DataFrame
 sample_id = df_data['ID']
 risk_table_all = pd.DataFrame({
     'ID': sample_id,
     'risk_score': risk_score_all
 })
 
-# 3. (Optional) Add original features if you want
+# Add original features
 for feature in features:
     risk_table_all[feature] = df_data[feature]
 
-# 4. (Optional) Add true label if you have it
+# Add true label
 if 'group' in df_data.columns:
     risk_table_all['true_label'] = df_data['group']
 
-# 5. Show preview
-print("\n Risk Table (All Samples):")
+# Preview
+print("\n📋 Risk Table (All Samples):")
 print(risk_table_all.head())
 
-# 6. Save to CSV
+# Save
 risk_table_all.to_csv('output_risk_score_all_samples.csv', index=False)
+# %%
+
+# Assume:
+# - risk_score_all = model.predict_proba(X)[:, 1]
+# - df_data contains Se in 'X78..Se....He..'
+# - best_threshold = 0.42
+
+# 1. Create a DataFrame for convenience
+se_risk_df = pd.DataFrame({
+    'Se': df_data['X78..Se....He..'],
+    'risk_score': risk_score_all
+})
+
+# 2. Filter samples near the decision threshold ± small margin
+margin = 0.01  # you can adjust (e.g., 0.005 ~ 0.02)
+near_cutoff = se_risk_df[
+    (se_risk_df['risk_score'] >= best_threshold - margin) &
+    (se_risk_df['risk_score'] <= best_threshold + margin)
+]
+
+# 3. Display the estimated Se cutoff range
+print(f"\nSe concentration range around risk score = {best_threshold:.2f}:")
+print(near_cutoff.sort_values(by='Se'))
+
+# 4. Optional — compute median Se value at decision boundary
+median_se = near_cutoff['Se'].median()
+print(f"\nEstimated Se cutoff (median): {median_se:.2f}")
+
+plt.figure(figsize=(8,6))
+plt.scatter(df_data['X78..Se....He..'], risk_score_all, alpha=0.6)
+plt.axhline(best_threshold, color='red', linestyle='--', label=f'Risk Score = {best_threshold:.2f}')
+plt.axvline(median_se, color='green', linestyle='--', label=f'Est. Se Cutoff = {median_se:.2f}')
+plt.xlabel('Se concentration')
+plt.ylabel('Predicted Risk Score')
+plt.title('Se Concentration vs Predicted Risk Score')
+plt.legend()
+plt.grid(True)
+plt.show()
