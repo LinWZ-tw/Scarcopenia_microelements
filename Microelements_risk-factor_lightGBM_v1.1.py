@@ -19,20 +19,8 @@ df_data = pd.read_csv('import_df.csv')
 # Remove rows with 'suspected normal'
 df_data = df_data[df_data['group'] != 'suspected normal']
 
-# Define features and target
-features = ['age_at_include', 'sex', 'BMI', 
-            'X78..Se....He..', 'X7..Li....No.gas..', 'X9..Be....No.gas..', 
-            'X44..Ca....He..', 'X51..V....He..', 'X52..Cr....He..', 
-            'X55..Mn....He..', 'X56..Fe....He..', 'X59..Co....He..', 
-            'X60..Ni....He..', 'X63..Cu....He..', 'X66..Zn....He..', 
-            'X71..Ga....He..', 'X72..Ge....He..', 'X75..As....He..', 
-            'X78..Se....He...1', 'X85..Rb....He..', 'X88..Sr....He..', 
-            'X90..Zr....He..', 'X95..Mo....He..', 'X107..Ag....He..', 
-            'X111..Cd....He..', 'X115..In....He..', 'X118..Sn....He..', 
-            'X121..Sb....He..', 'X125..Te....He..', 'X137..Ba....He..', 
-            'X182..W....He..', 'X195..Pt....He..', 'X197..Au....He..', 
-            'X201..Hg....He..', 'X205..Tl....He..', 'X208..Pb....He..', 
-            'X209..Bi....He..', 'X232..Th....He..', 'X238..U....He..']
+# Define features and target 
+features = ['age', 'gender', 'BMI', ... ]
 
 X = df_data[features]
 y = df_data['group']
