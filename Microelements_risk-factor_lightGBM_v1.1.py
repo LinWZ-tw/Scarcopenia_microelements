@@ -1,7 +1,7 @@
 """
 Author: Lin, Wei-Zhi
-Version: 1.1.0
-Last updated: 20250429
+Version: 1.2.0
+Last updated: 20250430
 """
 #%% 00 Import Packages
 import pandas as pd
@@ -226,7 +226,6 @@ risk_table_all.to_csv('output_risk_score_all_samples.csv', index=False)
 # Assume:
 # - risk_score_all = model.predict_proba(X)[:, 1]
 # - df_data contains Se in 'X78..Se....He..'
-# - best_threshold = 0.42
 
 # 1. Create a DataFrame for convenience
 se_risk_df = pd.DataFrame({
