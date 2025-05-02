@@ -12,7 +12,7 @@ from statsmodels.stats.multitest import multipletests
 import matplotlib.pyplot as plt
 
 #%% 01 Load Your Data
-df_data = pd.read_csv('import_df_TableMaker_2groups0429.csv')
+df_data = pd.read_csv('import_data.csv')
 
 #%% 02 Define Covariates and Metal Features
 adjustment_features = ['age_at_include', 'sex', 'BMI']
@@ -64,7 +64,7 @@ for metal in test_features:
         })
     
     except Exception as e:
-        print(f"⚠️ Warning: Regression failed for {metal}: {e}")
+        print(f"⚠Warning: Regression failed for {metal}: {e}")
 
 # Convert to DataFrame
 results_df = pd.DataFrame(results)
